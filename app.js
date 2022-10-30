@@ -2,25 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
-const { errors } = require('celebrate');
 const helmet = require('helmet');
 
-const auth = require('./middlewares/auth');
-const NotFoundError = require('./utils/NotFoundError');
 const { handleError } = require('./middlewares/handleError');
-const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { cors } = require('./middlewares/cors');
-const limiter = require('./utils/limiter');
-const { userRouter } = require('./routes/users');
-const { moviesRouter } = require('./routes/movies');
+const { indexRouter } = require('./routes/index');
 
-const { PORT, MONGO_URL, NODE_ENV } = process.env;
+const { PORT = 3000, MONGO_URL, NODE_ENV } = process.env;
 
 const app = express();
 
 app.use(cors);
 app.use(helmet());
-app.use(limiter);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -32,19 +25,7 @@ mongoose.connect(
   },
 );
 
-app.use(requestLogger);
-
-app.use(userRouter);
-app.use(auth);
-app.use(moviesRouter);
-
-app.use((req, res, next) => {
-  next(new NotFoundError('Маршрут не найден'));
-});
-
-app.use(errorLogger);
-
-app.use(errors());
+app.use(indexRouter);
 
 app.use(handleError);
 

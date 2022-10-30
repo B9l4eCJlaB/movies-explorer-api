@@ -12,26 +12,29 @@ exports.getUserMe = (req, res, next) => {
     .catch(next);
 };
 
-module.exports.patchUser = (req, res, next) => {
-  const { email, name } = req.body;
-  User.findByIdAndUpdate(
-    req.user._id,
-    { email, name },
-    { new: true, runValidators: true },
-  )
-    .orFail(() => new NotFoundError('Пользователь с таким id не найден'))
-    .then((user) => {
-      res.send(user);
-    })
-    .catch((err) => {
-      if (err.code === 1100) {
-        next(new RepetitionError('Такой email уже занят'));
-      } else if (err.name === 'ValidationError' || err.name === 'CastError') {
-        next(new BadRequestError('Некорректные данные'));
-      } else {
-        next(err);
-      }
-    });
+module.exports.patchUser = async (req, res, next) => {
+  try {
+    const { name, email } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name, email },
+      { new: true, runValidators: true },
+    );
+    if (!user) {
+      throw new NotFoundError('Пользователь с таким id не найден');
+    }
+    res.send(user);
+  } catch (err) {
+    if (err.name === 'CastError' || err.name === 'ValidationError') {
+      next(new BadRequestError('Некорректные данные'));
+      return;
+    }
+    if (err.code === 11000) {
+      next(new RepetitionError('Такой email уже занят'));
+      return;
+    }
+    next(err);
+  }
 };
 
 exports.createUser = (req, res, next) => {
